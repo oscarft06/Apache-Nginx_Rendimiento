@@ -1,0 +1,60 @@
+version: '3.9'
+services: 
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress_apache
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rendimiento
+  php-fpm:
+    build: ./php
+    container_name: php-fpm
+    volumes:
+      - ./apache/wordpress:/var/www/html/wordpress_apache
+      - ./nginx/wordpress:/var/www/html/wordpress_nginx
+      - ./apache/phpmyadmin:/var/www/html/phpmyadmin
+    networks:
+      - rendimiento
+  
+  apache:
+    build: ./apache
+    container_name: apache
+    ports:
+      - "8445:443"
+      - "8081:80"
+    volumes:
+      - ./apache/wordpress:/var/www/html/wordpress_apache
+      - ./apache/phpmyadmin:/var/www/html/phpmyadmin
+    depends_on:
+      - php-fpm
+      - mysql
+    networks:
+      - rendimiento
+
+  nginx:
+    build: ./nginx
+    container_name: nginx
+    ports:
+      - "8444:443"
+      - "8080:80"
+    volumes:
+      - ./nginx/wordpress:/var/www/html/wordpress_nginx
+    depends_on:
+      - php-fpm
+      - mysql
+    networks:
+      - rendimiento
+
+
+networks:
+  rendimiento:
+    driver: bridge
